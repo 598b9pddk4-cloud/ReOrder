@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#378add">
+  <title>ReOrder - Label Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #378add;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .panel h2 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      color: #1a1a1a;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #378add;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #378add;
+      box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.1);
+    }
+    
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 18px;
+      padding-right: 36px;
+    }
+    
+    .search-results {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+    
+    .search-result-item {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .search-result-item:hover {
+      background: #f9f9f9;
+    }
+    
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    
+    .result-part {
+      font-weight: 600;
+      color: #378add;
+    }
+    
+    .result-desc {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+    }
+    
+    button {
+      background: #378add;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+      width: 100%;
+      min-height: 44px;
+    }
+    
+    button:hover {
+      background: #2875c2;
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+    
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: #999;
+    }
+    
+    .btn-secondary:hover {
+      background: #777;
+    }
+    
+    .print-preview {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    
+    .print-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 160px);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .label-preview {
+      width: 160px;
+      height: 160px;
+      border: 2px dashed #378add;
+      border-radius: 4px;
+      padding: 8px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .label-qr {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 4px;
+    }
+    
+    .label-info {
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    
+    .status {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    
+    .status-success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+    
+    .status-error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+    }
+    
+    .status-info {
+      background: #e3f2fd;
+      color: #1565c0;
+      border: 1px solid #bbdefb;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .action-btn {
+      padding: 10px;
+      font-size: 12px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #378add;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @media print {
+      body {
+        background: white;
+      }
+      
+      .container {
+        max-width: 100%;
+        padding: 0;
+      }
+      
+      header, .panel, .actions, .status {
+        display: none;
+      }
+      
+      .print-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        page-break-inside: avoid;
+      }
+      
+      .label-preview {
+        width: 148mm;
+        height: 210mm;
+        border: none;
+        margin: 0;
+        padding: 0;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🏷️ ReOrder - Label Generator</h1>
+    <p class="subtitle">Kanban-Etikett Generator für 50x50mm Selbstkleber</p>
+  </header>
+  
+  <div class="layout">
+    <!-- Linkes Panel: Eingabe -->
+    <div class="panel">
+      <h2>📋 Etikett erstellen</h2>
+      
+      <div id="statusMessage"></div>
+      
+      <div class="form-group">
+        <label for="partSearch">Teil-Nummer oder Name *</label>
+        <input 
+          type="text" 
+          id="partSearch" 
+          placeholder="z.B. 000001 oder Brennteil"
+          autocomplete="off">
+        <div class="search-results hidden" id="searchResults"></div>
+      </div>
+      
+      <div id="selectedPart" class="hidden">
+        <div class="form-group">
+          <label>Ausgewähltes Teil:</label>
+          <input type="text" id="selectedPartDisplay" readonly style="background: #f5f5f5; cursor: not-allowed;">
+        </div>
+        
+        <div class="form-group">
+          <label for="quantity">Bestellmenge *</label>
+          <input 
+            type="number" 
+            id="quantity" 
+            value="50" 
+            min="1" 
+            placeholder="z.B. 50">
+        </div>
+        
+        <div class="form-group">
+          <label for="unit">Einheit</label>
+          <select id="unit">
+            <option value="Stück">Stück</option>
+            <option value="kg">kg</option>
+            <option value="m">m</option>
+            <option value="l">l</option>
+            <option value="Box">Box</option>
+            <option value="Palette">Palette</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="location">Lagerplatz</label>
+          <input 
+            type="text" 
+            id="location" 
+            placeholder="z.B. Lager A - Regal 3">
+        </div>
+        
+        <div class="form-group">
+          <label for="priority">Priorität</label>
+          <select id="priority">
+            <option value="Normal">Normal</option>
+            <option value="Hoch">Hoch</option>
+            <option value="Sehr Hoch">Sehr Hoch</option>
+          </select>
+        </div>
+        
+        <button id="addLabelBtn">➕ Etikett hinzufügen</button>
+      </div>
+    </div>
+    
+    <!-- Rechtes Panel: Vorschau & Druck -->
+    <div class="panel">
+      <h2>🖨️ Etiketten Vorschau</h2>
+      
+      <div id="previewStatus" class="status status-info">
+        Wähle ein Teil aus der linken Seite und klick "Etikett hinzufügen"
+      </div>
+      
+      <div id="printPreview" class="print-preview">
+        <div id="labelGrid" class="print-grid"></div>
+      </div>
+      
+      <div class="actions">
+        <button id="printBtn" class="action-btn" disabled>🖨️ Drucken</button>
+        <button id="clearBtn" class="action-btn btn-secondary" disabled>🗑️ Löschen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const partSearch = document.getElementById('partSearch');
+const searchResults = document.getElementById('searchResults');
+const selectedPart = document.getElementById('selectedPart');
+const selectedPartDisplay = document.getElementById('selectedPartDisplay');
+const quantityInput = document.getElementById('quantity');
+const unitSelect = document.getElementById('unit');
+const locationInput = document.getElementById('location');
+const prioritySelect = document.getElementById('priority');
+const addLabelBtn = document.getElementById('addLabelBtn');
+const printBtn = document.getElementById('printBtn');
+const clearBtn = document.getElementById('clearBtn');
+const labelGrid = document.getElementById('labelGrid');
+const statusMessage = document.getElementById('statusMessage');
+const previewStatus = document.getElementById('previewStatus');
+
+let teilestamm = [];
+let selectedPartData = null;
+let labels = [];
+
+// CSV laden
+async function loadTeilestamm() {
+  try {
+    const response = await fetch('https://raw.githubusercontent.com/598b9pddk4-cloud/reorder/main/teilestamm.csv');
+    if (!response.ok) throw new Error('CSV konnte nicht geladen werden');
+    
+    const csv = await response.text();
+    
+    Papa.parse(csv, {
+      header: true,
+      dynamicTyping: false,
+      skipEmptyLines: true,
+      complete: (results) => {
+        teilestamm = results.data.filter(row => row.Teil && row.Teil.trim());
+        showStatus('✓ Teilestamm geladen (' + teilestamm.length + ' Teile)', 'success');
+      },
+      error: (error) => {
+        showStatus('⚠ Offline-Modus: Verwende Test-Daten', 'info');
+        loadTestData();
+      }
+    });
+  } catch (err) {
+    console.error('CSV Load Error:', err);
+    showStatus('⚠ Offline-Modus: Verwende Test-Daten', 'info');
+    loadTestData();
+  }
+}
+
+function loadTestData() {
+  teilestamm = [
+    { Teil: '000001', 'Bezeichnung 1': 'Brennteil Wst.' },
+    { Teil: '000002', 'Bezeichnung 1': 'Wendel ° AØ Stg.' },
+    { Teil: '000003', 'Bezeichnung 1': 'Vorlage (N) Fertigungsteil' },
+    { Teil: '000011', 'Bezeichnung 1': 'Brennteil Blechabteilung' },
+    { Teil: '000100', 'Bezeichnung 1': 'Montage-Set A' },
+    { Teil: '000200', 'Bezeichnung 1': 'Halter komplett' },
+  ];
+}
+
+// Suche
+partSearch.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  
+  if (!query) {
+    searchResults.classList.add('hidden');
+    return;
+  }
+  
+  const results = teilestamm.filter(part => 
+    part.Teil.toLowerCase().includes(query) ||
+    (part['Bezeichnung 1'] && part['Bezeichnung 1'].toLowerCase().includes(query))
+  ).slice(0, 10);
+  
+  if (results.length === 0) {
+    searchResults.innerHTML = '<div style="padding: 10px; color: #999;">Keine Ergebnisse</div>';
+    searchResults.classList.remove('hidden');
+    return;
+  }
+  
+  searchResults.innerHTML = results.map(part => `
+    <div class="search-result-item" data-teil="${part.Teil}">
+      <div class="result-part">${part.Teil}</div>
+      <div class="result-desc">${part['Bezeichnung 1'] || 'Keine Beschreibung'}</div>
+    </div>
+  `).join('');
+  
+  searchResults.classList.remove('hidden');
+  
+  document.querySelectorAll('.search-result-item').forEach(item => {
+    item.addEventListener('click', () => selectPart(item.dataset.teil));
+  });
+});
+
+function selectPart(teilNummer) {
+  const part = teilestamm.find(p => p.Teil === teilNummer);
+  if (!part) return;
+  
+  selectedPartData = part;
+  selectedPartDisplay.value = `${part.Teil} - ${part['Bezeichnung 1'] || ''}`;
+  selectedPart.classList.remove('hidden');
+  searchResults.classList.add('hidden');
+  partSearch.value = '';
+}
+
+function showStatus(message, type) {
+  statusMessage.className = `status status-${type}`;
+  statusMessage.textContent = message;
+  statusMessage.style.display = 'block';
+  
+  if (type === 'success') {
+    setTimeout(() => statusMessage.style.display = 'none', 3000);
+  }
+}
+
+// Label erstellen
+addLabelBtn.addEventListener('click', () => {
+  if (!selectedPartData) return;
+  
+  const label = {
+    id: Date.now(),
+    teil: selectedPartData.Teil,
+    bezeichnung: selectedPartData['Bezeichnung 1'] || '',
+    menge: quantityInput.value,
+    einheit: unitSelect.value,
+    lagerplatz: locationInput.value,
+    priorität: prioritySelect.value,
+    timestamp: new Date().toLocaleString('de-DE')
+  };
+  
+  labels.push(label);
+  renderLabels();
+  
+  showStatus('✓ Etikett hinzugefügt', 'success');
+  
+  // Reset für nächstes Label
+  selectedPart.classList.add('hidden');
+  selectedPartData = null;
+  partSearch.value = '';
+  partSearch.focus();
+});
+
+function renderLabels() {
+  labelGrid.innerHTML = labels.map(label => `
+    <div class="label-preview">
+      <div id="qr-${label.id}" class="label-qr"></div>
+      <div class="label-info">
+        <div style="font-weight: 700;">${label.teil}</div>
+        <div>${label.menge} ${label.einheit}</div>
+        ${label.lagerplatz ? `<div>${label.lagerplatz}</div>` : ''}
+      </div>
+      <button style="position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; padding: 0; font-size: 10px; background: #f44336; margin: 0;" onclick="removeLabel('${label.id}')">✕</button>
+    </div>
+  `).join('');
+  
+  // QR-Codes generieren
+  labels.forEach(label => {
+    const qrData = `${label.teil}|${label.menge}|${label.lagerplatz}`;
+    const qrElement = document.getElementById(`qr-${label.id}`);
+    qrElement.innerHTML = '';
+    
+    new QRCode(qrElement, {
+      text: qrData,
+      width: 80,
+      height: 80,
+      colorDark: '#000',
+      colorLight: '#fff'
+    });
+  });
+  
+  printBtn.disabled = labels.length === 0;
+  clearBtn.disabled = labels.length === 0;
+  
+  if (labels.length > 0) {
+    previewStatus.style.display = 'none';
+  }
+}
+
+function removeLabel(id) {
+  labels = labels.filter(l => l.id !== id);
+  renderLabels();
+}
+
+printBtn.addEventListener('click', () => {
+  window.print();
+});
+
+clearBtn.addEventListener('click', () => {
+  if (confirm('Alle Etiketten löschen?')) {
+    labels = [];
+    renderLabels();
+    previewStatus.style.display = 'block';
+  }
+});
+
+// App starten
+loadTeilestamm();
+</script>
+
+</body>
+</html>
